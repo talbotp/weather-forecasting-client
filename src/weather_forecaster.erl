@@ -86,3 +86,8 @@ number_to_binary(Integer) when is_integer(Integer) ->
   integer_to_binary(Integer);
 number_to_binary(Float) when is_integer(Float) ->
   float_to_binary(Float).
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+
+-endif.
