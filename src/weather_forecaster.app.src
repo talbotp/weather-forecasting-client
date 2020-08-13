@@ -2,13 +2,12 @@
  [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
-  {mod, {weather_forecaster_app, []}},
   {applications,
    [kernel,
     stdlib
    ]},
   {env,[]},
-  {modules, []},
+  {modules, [weather_forecaster]},
 
   {licenses, ["Apache 2.0"]},
   {links, []}
