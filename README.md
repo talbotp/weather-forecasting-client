@@ -1,9 +1,9 @@
-weather_forecaster
-=====
+# weather_forecaster
 
-An OTP application
+An OTP application built to consume the darksky api to fetch weather data.
 
-Build
------
+# Usage
 
-    $ rebar3 compile
+rebar3 compile
+
+# Issues
