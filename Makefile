@@ -11,4 +11,4 @@ compile:
 	${REBAR} compile
 
 dev:
-	${REBAR} shell --config ${CONFIG_DIR}/dev.config
+	${REBAR} shell

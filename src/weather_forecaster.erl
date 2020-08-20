@@ -1,41 +1,43 @@
 %%%-------------------------------------------------------------------
 %%% @author parker
 %%% @doc
-%%% Main module which is used to query the darksky api.
+%%% Module which is used to query the darksky api.
 %%% @end
 %%% Created : 13. Aug 2020 14:12
 %%%-------------------------------------------------------------------
 -module(weather_forecaster).
 -author("parker").
 
+-include("../include/logger.hrl").
+
 %% API
 -export([
-  init/0,
   current_forecast/1,
   current_forecast/2
 ]).
 
 -define(GET, get).
-
 -define(is_number(X), is_integer(X) orelse is_float(X)).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-init() ->
-  ibrowse:start().
-
+%%--------------------------------------------------------------------
+%% Fetch all latitude and longitudes from the given city name and then
+%% print the current weather at that location.
+%%--------------------------------------------------------------------
 current_forecast(City) when is_binary(City) ->
   {ok, ConversionURL} = get_env(city_conversion_url),
   {ok, "200", _HttpParams, Json} = ibrowse:send_req(ConversionURL, [], ?GET),
-  JsonMap = jsx:decode(list_to_binary(Json)),
-  case get_duplicate_name_cities(City, JsonMap) of
+  CityMap = jsx:decode(list_to_binary(Json)),
+  case filter_by_city_name(City, CityMap) of
     [] ->
-      io:format("No results found for {City name}.");
+      ?INFO("No results found for ~p.", [City]);
     CityList when length(CityList) >= 1 ->
       lists:foreach(
         fun(CityDataMap) ->
+          ?INFO("CityDataMap = ~p", [CityDataMap]),
           Latitude = maps:get(<<"lat">>, CityDataMap),
           Longitude = maps:get(<<"lng">>, CityDataMap),
           current_forecast(Latitude, Longitude)
@@ -47,7 +49,8 @@ current_forecast(City) when is_atom(City) ->
   current_forecast(atom_to_list(City)).
 
 %%--------------------------------------------------------------------
-%% Send a get request to darksky, and return the json result, or error.
+%% Fetch and print a binary message of the weather given a latitude and
+%% longitude.
 %%--------------------------------------------------------------------
 current_forecast(Latitude, Longitude) when ?is_number(Latitude) andalso ?is_number(Longitude) ->
   %% Fetch the json values from the darksky api.
@@ -71,7 +74,7 @@ current_forecast(Latitude, Longitude) when ?is_number(Latitude) andalso ?is_numb
     <<" with a ">>/binary, (number_to_binary(HourlyPrecipProb))/binary,
     <<"% chance of rain.">>/binary
   >>,
-  io:format(binary_to_list(Result)).
+  ?INFO(binary_to_list(Result)).
 
 %%%===================================================================
 %%% Internal functions
@@ -91,8 +94,10 @@ query_darksky(Latitude, Longitude) ->
 
   case ibrowse:send_req(DarkSkyURL, [], ?GET) of
     {ok, "200", _HttpParams, Json} ->
+      ?DEBUG("Fetched weather information from darksky with Lat=~p, Lng=~p", [Latitude, Longitude]),
       {ok, Json};
-    _ ->
+    Error ->
+      ?ERROR("Error fetching data from darksky, Error=~p", [Error]),
       error
   end.
 
@@ -100,7 +105,7 @@ query_darksky(Latitude, Longitude) ->
 %% Given a city and a List of maps containing city information,
 %% return a list of cities with matching names.
 %%--------------------------------------------------------------------
-get_duplicate_name_cities(City, CityDataList) ->
+filter_by_city_name(City, CityDataList) ->
   lists:filter(
     fun(CityDataMap) ->
       case maps:find(<<"name">>, CityDataMap) of
@@ -121,10 +126,12 @@ number_to_list(Float) when is_float(Float) ->
 
 number_to_binary(Integer) when is_integer(Integer) ->
   integer_to_binary(Integer);
-number_to_binary(Float) when is_integer(Float) ->
+number_to_binary(Float) when is_float(Float) ->
   float_to_binary(Float).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
+
 
 -endif.
