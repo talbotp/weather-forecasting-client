@@ -1,13 +1,14 @@
 {application, weather_forecaster,
- [{description, "An OTP application"},
+ [{description, "A weather forecasting client."},
   {vsn, "0.1.0"},
+  {mod, {weather_forecaster_app, []}},
   {registered, []},
-  {applications,
-   [kernel,
+  {applications, [
+    kernel,
     stdlib,
     lager,
     ibrowse
-   ]},
+  ]},
   {env,[]},
   {modules, [weather_forecaster]},
   {licenses, ["Apache 2.0"]},

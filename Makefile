@@ -10,5 +10,8 @@ deps:
 compile:
 	${REBAR} compile
 
+test:
+	${REBAR} eunit
+
 dev:
 	${REBAR} shell

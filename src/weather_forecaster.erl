@@ -27,11 +27,9 @@
 %% Fetch all latitude and longitudes from the given city name and then
 %% print the current weather at that location.
 %%--------------------------------------------------------------------
+-spec current_forecast(City :: atom() | list() | binary()) -> ok.
 current_forecast(City) when is_binary(City) ->
-  {ok, ConversionURL} = get_env(city_conversion_url),
-  {ok, "200", _HttpParams, Json} = ibrowse:send_req(ConversionURL, [], ?GET),
-  CityMap = jsx:decode(list_to_binary(Json)),
-  case filter_by_city_name(City, CityMap) of
+  case weather_forecaster_city_cache:convert_city(City) of
     [] ->
       ?INFO("No results found for ~p.", [City]);
     CityList when length(CityList) >= 1 ->
@@ -40,7 +38,7 @@ current_forecast(City) when is_binary(City) ->
           ?INFO("CityDataMap = ~p", [CityDataMap]),
           Latitude = maps:get(<<"lat">>, CityDataMap),
           Longitude = maps:get(<<"lng">>, CityDataMap),
-          current_forecast(Latitude, Longitude)
+          current_forecast(binary_to_list(Latitude), binary_to_list(Longitude))
         end, CityList)
   end;
 current_forecast(City) when is_list(City) ->
@@ -52,7 +50,8 @@ current_forecast(City) when is_atom(City) ->
 %% Fetch and print a binary message of the weather given a latitude and
 %% longitude.
 %%--------------------------------------------------------------------
-current_forecast(Latitude, Longitude) when ?is_number(Latitude) andalso ?is_number(Longitude) ->
+-spec current_forecast(Latitude :: number() | list(), Longitude :: number() | list()) -> ok.
+current_forecast(Latitude, Longitude) when is_list(Latitude) andalso is_list(Longitude) ->
   %% Fetch the json values from the darksky api.
   {ok, Json}  = query_darksky(Latitude, Longitude),
   JsonMap     = jsx:decode(list_to_binary(Json)),
@@ -67,14 +66,15 @@ current_forecast(Latitude, Longitude) when ?is_number(Latitude) andalso ?is_numb
   [HourlyDataMap | _] = maps:get(<<"data">>, HourlyMap),
   HourlyPrecipProb    = maps:get(<<"precipProbability">>, HourlyDataMap),
 
-  %% Return the binary summary of current forecast.
   Result = <<
     <<"Current weather - ">>/binary, CurrentSummary/binary,
     <<", Today we will see - ">>/binary, HourlySummary/binary,
     <<" with a ">>/binary, (number_to_binary(HourlyPrecipProb))/binary,
     <<"% chance of rain.">>/binary
   >>,
-  ?INFO(binary_to_list(Result)).
+  ?INFO(binary_to_list(Result));
+current_forecast(Latitude, Longitude) when ?is_number(Latitude) andalso ?is_number(Longitude) ->
+  current_forecast(number_to_list(Latitude), number_to_list(Longitude)).
 
 %%%===================================================================
 %%% Internal functions
@@ -84,13 +84,10 @@ current_forecast(Latitude, Longitude) when ?is_number(Latitude) andalso ?is_numb
 %% Send a get request to darksky, and return the json result, or error.
 %%--------------------------------------------------------------------
 query_darksky(Latitude, Longitude) ->
-  {ok, DarkskyHost} = get_env(darksky_host),
-  {ok, DarkskyKey}  = get_env(darksky_key),
+  {ok, DarkskyHost} = weather_forecaster_env:get_env(darksky_host),
+  {ok, DarkskyKey}  = weather_forecaster_env:get_env(darksky_key),
 
-  LatitudeList  = number_to_list(Latitude),
-  LongitudeList = number_to_list(Longitude),
-
-  DarkSkyURL = lists:flatten([DarkskyHost, DarkskyKey, "/", LatitudeList, ",", LongitudeList]),
+  DarkSkyURL = lists:flatten([DarkskyHost, DarkskyKey, "/", Latitude, ",", Longitude]),
 
   case ibrowse:send_req(DarkSkyURL, [], ?GET) of
     {ok, "200", _HttpParams, Json} ->
@@ -101,24 +98,6 @@ query_darksky(Latitude, Longitude) ->
       error
   end.
 
-%%--------------------------------------------------------------------
-%% Given a city and a List of maps containing city information,
-%% return a list of cities with matching names.
-%%--------------------------------------------------------------------
-filter_by_city_name(City, CityDataList) ->
-  lists:filter(
-    fun(CityDataMap) ->
-      case maps:find(<<"name">>, CityDataMap) of
-        {ok, CurrentCityName} ->
-          CurrentCityName =:= City;
-        error ->
-          false
-      end
-    end, CityDataList).
-
-get_env(Key) when is_atom(Key) ->
-  application:get_env(weather_forecaster, Key).
-
 number_to_list(Integer) when is_integer(Integer) ->
   integer_to_list(Integer);
 number_to_list(Float) when is_float(Float) ->
@@ -128,10 +107,3 @@ number_to_binary(Integer) when is_integer(Integer) ->
   integer_to_binary(Integer);
 number_to_binary(Float) when is_float(Float) ->
   float_to_binary(Float).
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
-
-
-
--endif.
