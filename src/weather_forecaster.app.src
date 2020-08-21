@@ -1,5 +1,5 @@
-{application, weather_forecaster,
- [{description, "A weather forecasting client."},
+{application, weather_forecaster, [
+  {description, "A weather forecasting client."},
   {vsn, "0.1.0"},
   {mod, {weather_forecaster_app, []}},
   {registered, []},
@@ -7,10 +7,11 @@
     kernel,
     stdlib,
     lager,
-    ibrowse
+    ibrowse,
+    cowboy
   ]},
   {env,[]},
   {modules, [weather_forecaster]},
   {licenses, ["Apache 2.0"]},
   {links, []}
- ]}.
+]}.

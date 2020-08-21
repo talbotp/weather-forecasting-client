@@ -2,16 +2,16 @@ REBAR=./rebar3
 CONFIG_DIR=./config
 
 clean:
-	${REBAR} clean
+	@${REBAR} clean
 
 deps:
-	${REBAR} deps
+	@${REBAR} deps
 
 compile:
-	${REBAR} compile
+	@${REBAR} compile
 
 test:
-	${REBAR} eunit
+	@${REBAR} eunit
 
 dev:
-	${REBAR} shell
+	@${REBAR} shell
