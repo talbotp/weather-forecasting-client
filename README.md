@@ -6,9 +6,9 @@ An OTP application built to consume the darksky api to fetch weather data.
 
 To start the app locally, run the following
 
-'''
+```
  make deps compile dev
-'''
+ ```
 
 To reload the city mappings, use the following 
 
